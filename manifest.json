@@ -1,0 +1,26 @@
+{
+  "manifest_version": 2,
+  "name": "My Addon",
+  "version": "1.0",
+
+  "description": "Description here.",
+
+  "icons": {
+    "48": "icons/border-48.png"
+  },
+
+  "permissions": [
+    "webRequest",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.google.co.in/*"],
+      "js": ["jquery.js","borderify.js"]
+    }
+  ]
+
+}
