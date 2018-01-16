@@ -10,7 +10,7 @@ This is a Firefox plugin which gives a confidence score to each of the links ret
   </p>
   
   <p id="Depth">
-  #Factors Considered 
+  <b>Factors Considered </b>
   The factors which are considered now is whether the links is using https or http protocol and the domain of the links.
   
   The domains in the list [org,edu etc] are given higher priorities if found in the links, then comes the government websites such as [in,uk, etc] followed by the commcercial websites.
