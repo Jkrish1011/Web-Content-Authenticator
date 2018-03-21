@@ -30,7 +30,7 @@ import pickle
 
 from nltk.tokenize import word_tokenize
 from nltk.classify import ClassifierI
-import codecs   ##used beacause our dataset is in latin
+import codecs   
 
 def convert_to_tokens(input_url):
 	tokens_red_slash=str(input_url.encode('utf-8')).split('/')
@@ -82,48 +82,6 @@ class VoteClassifier(ClassifierI):
             votes.append(v)
         return mode(votes)
 
-##implementation of codecs 
-with codecs.open("/Users/jk/Documents/Major/plugin_Test/positive.txt", "r", "latin-1") as inputfile:
-    short_pos=inputfile.read()
-with codecs.open("/Users/jk/Documents/Major/plugin_Test/negative.txt", "r", "latin-1") as inputfile:
-    short_neg=inputfile.read()
-
-all_words = []
-documents = []
-
-
-#  here j is adjective , r is adverb, and v is verb but we are removing all the adverb and verb here
-#allowed_word_types = ["J","R","V"]
-allowed_word_types = ["J"]
-
-for p in short_pos.split('\n'):
-    documents.append( (p, "0") )
-    words = word_tokenize(p)
-    pos = nltk.pos_tag(words)
-    for w in pos:
-        if w[1][0] in allowed_word_types:
-            all_words.append(w[0].lower())
-
-    
-for p in short_neg.split('\n'):
-    documents.append( (p, "1") )
-    words = word_tokenize(p)
-    pos = nltk.pos_tag(words)
-    for w in pos:
-        if w[1][0] in allowed_word_types:
-            all_words.append(w[0].lower())
-
-
-
-documents_temp = open("/Users/jk/Documents/Major/plugin_Test/documents.pickle", "rb")
-documents = pickle.load(documents_temp)
-documents_temp.close()
-
-
-
-word_features_temp = open("/Users/jk/Documents/Major/plugin_Test/word_features5k.pickle", "rb")
-word_features = pickle.load(word_features_temp)
-word_features_temp.close()
 
 
 
@@ -182,7 +140,53 @@ def func_hello(request):
 @csrf_exempt
 def plugin(request):
 	''' This function is for the actual plugin.'''
+	try:
+		##implementation of codecs 
+		with codecs.open("/Users/jk/Documents/Major/plugin_Test/positive.txt", "r", "latin-1") as inputfile:
+		    short_pos=inputfile.read()
+		with codecs.open("/Users/jk/Documents/Major/plugin_Test/negative.txt", "r", "latin-1") as inputfile:
+		    short_neg=inputfile.read()
 
+		all_words = []
+		documents = []
+
+
+		#  here j is adjective , r is adverb, and v is verb but we are removing all the adverb and verb here
+		#allowed_word_types = ["J","R","V"]
+		allowed_word_types = ["J"]
+
+		for p in short_pos.split('\n'):
+		    documents.append( (p, "0") )
+		    words = word_tokenize(p)
+		    pos = nltk.pos_tag(words)
+		    for w in pos:
+		        if w[1][0] in allowed_word_types:
+		            all_words.append(w[0].lower())
+
+		    
+		for p in short_neg.split('\n'):
+		    documents.append( (p, "1") )
+		    words = word_tokenize(p)
+		    pos = nltk.pos_tag(words)
+		    for w in pos:
+		        if w[1][0] in allowed_word_types:
+		            all_words.append(w[0].lower())
+
+
+
+		documents_temp = open("/Users/jk/Documents/Major/plugin_Test/documents.pickle", "rb")
+		documents = pickle.load(documents_temp)
+		documents_temp.close()
+
+
+
+		word_features_temp = open("/Users/jk/Documents/Major/plugin_Test/word_features5k.pickle", "rb")
+		word_features = pickle.load(word_features_temp)
+		word_features_temp.close()
+
+
+	except Exception as e:
+		return HttpResponse(e)
 	try:
 		resp1 = json.loads(str(request.body,encoding='utf=8'))
 		resp = []
@@ -247,35 +251,41 @@ def plugin(request):
 				sentimnt.append(0)
 
 		###############################################
-		urls=pd.read_csv('/Users/jk/Documents/Major/plugin_Test/url.txt',delimiter=',')
-		allurldata=pd.DataFrame(urls)
-		allurldata=np.array(allurldata)
-		random.shuffle(allurldata)
+		token = open("/Users/jk/Documents/Major/plugin_Test/tokens.pickle", "rb")
+		all_token = pickle.load(token)
+		token.close()
+		##pickling is used
+
+		load_y = open("/Users/jk/Documents/Major/plugin_Test/y.pickle", "rb")
+		y = pickle.load(load_y)
+		load_y.close()
 
 
-		y=[d[1] for d in allurldata]
-		corpus=[d[0] for d in allurldata]
-		vect_url= TfidfVectorizer(tokenizer=convert_to_tokens)
+		load_corpus = open("/Users/jk/Documents/Major/plugin_Test/corpus.pickle", "rb")
+		corpus = pickle.load(load_corpus)
+		load_corpus.close()
+
+		vect_url= TfidfVectorizer(all_token)
+
 		x=vect_url.fit_transform(corpus)
 
-
 		x_train ,x_test,y_train,y_test=train_test_split(x,y,test_size=0.2,random_state=42)
+		filename = '/Users/jk/Documents/Major/plugin_Test/finalized_model.sav'
 
+		value = pickle.load(open(filename, 'rb'))
 
-		value=LogisticRegression()
 		value.fit(x_train,y_train)
+	
 
-		malicious = []
-		for i in range(len(resp)):
-			try:
-				x_predict=[resp[i]]
-				x_predict=vect_url.transform(x_predict)
-				y_predict=value.predict(x_predict)
-				str1 = ''.join(map(str,(y_predict)))
-				# print(str1)
-				malicious.append(eval(str1))
-			except Exception as e:
-				return HttpResponse(e)
+
+		x_predict=vect_url.transform(resp)
+		y_predict=value.predict(x_predict)
+		str1 = ''.join(map(str,(y_predict)))
+		malicious = list()
+		for i in range(len(str1)):
+			malicious.append(int(str1[i]))
+
+
 
 ##########################################################
 
